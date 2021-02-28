@@ -10,11 +10,11 @@ args:
     - commands:
         short: c
         long: commands
-        allow_hyphen_values: true
-        multiple: true
         value_name: commands
-        help: Sets optional command line arguments for process
         takes_value: true
+        multiple: true
+        allow_hyphen_values: true
+        help: Sets optional command line arguments for process
     # - verbose:
     #     short: v
     #     multiple: true
