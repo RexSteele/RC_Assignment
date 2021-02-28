@@ -1,0 +1,21 @@
+name: clap_test
+version: "1.0"
+author: test
+about: for test
+args:
+    - process:
+        help: Sets process to use
+        required: true
+        index: 1
+    - commands:
+        short: c
+        long: commands
+        allow_hyphen_values: true
+        multiple: true
+        value_name: commands
+        help: Sets optional command line arguments for process
+        takes_value: true
+    # - verbose:
+    #     short: v
+    #     multiple: true
+    #     help: Sets the level of verbosity
