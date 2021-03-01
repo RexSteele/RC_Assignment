@@ -16,32 +16,10 @@ fn run_process(process: &str, proc_args: &Vec<String>) {
     println!("{}\n", command.id());
 }
 
-fn make_file() {
+fn file_process(process: &str) {
     let mut command = Command::new("sh")
         .arg("-c")
-        .arg("touch /tmp/temp.txt")
-        .spawn()
-        .expect("Failed to spawn process");
-    command.wait();
-    println!("{}", get_current_uid());
-    println!("{}\n", command.id());
-}
-
-fn modify_file() {
-    let mut command = Command::new("sh")
-        .arg("-c")
-        .arg("echo Testing Modification >> /tmp/temp.txt")
-        .spawn()
-        .expect("Failed to spawn process");
-    command.wait();
-    println!("{}", get_current_uid());
-    println!("{}\n", command.id());
-}
-
-fn delete_file() {
-    let mut command = Command::new("sh")
-        .arg("-c")
-        .arg("rm /tmp/temp.txt")
+        .arg(process)
         .spawn()
         .expect("Failed to spawn process");
     command.wait();
@@ -56,21 +34,19 @@ fn main() {
 
     let process = &matches.value_of("process").unwrap();
     let proc_args : &Vec<String>= &matches.values_of_lossy("commands").unwrap();
-    println!("{:?}", proc_args);
 
-
-    println!("Using input process: {}", matches.value_of("process").unwrap());
-    println!("Using commands string: {}", matches.value_of("commands").unwrap());
+    println!("Using input process: {}", process);
+    println!("Using commands string: {:?}", proc_args);
 
     run_process(process, proc_args);
 
     println!("Attempting to make file");
-    make_file();
+    file_process("touch /tmp/temp.txt");
 
     println!("Attempting to modify file");
-    modify_file();
+    file_process("echo Testing Modification >> /tmp/temp.txt");
 
     println!("Attempting to delete file");
-    delete_file();
+    file_process("rm /tmp/temp.txt");
 
 }
