@@ -3,7 +3,7 @@ extern crate shell_words;
 use std::process::Command;
 use std::env;
 use clap::{App, load_yaml};
-use users::{get_current_uid};
+use users::{get_user_by_uid, get_current_uid};
 
 fn custom_process(process: &str, proc_args: &Vec<String>) {
     let mut command = Command::new(process)
@@ -12,6 +12,8 @@ fn custom_process(process: &str, proc_args: &Vec<String>) {
         .expect("Failed to spawn process");
     let ecode = command.wait().expect("failed to wait on child");
     println!("{}", ecode);
+    let user = get_user_by_uid(get_current_uid()).unwrap();
+    println!("{}", user.name().to_string_lossy());
     println!("{}", get_current_uid());
     println!("{}\n", command.id());
 }
@@ -24,6 +26,8 @@ fn run_process(process: &str) {
         .expect("Failed to spawn process");
     let ecode = command.wait().expect("failed to wait on child");
     println!("{}", ecode);
+    let user = get_user_by_uid(get_current_uid()).unwrap();
+    println!("{}", user.name().to_string_lossy());
     println!("{}", get_current_uid());
     println!("{}\n", command.id());
 }
@@ -74,7 +78,7 @@ fn main() {
     file_activity(test_file, "modify");
 
     println!("Attempting to delete file");
-    run_process(test_file, "remove");
+    file_activity(test_file, "remove");
 
     custom_process(process, proc_args);
 
