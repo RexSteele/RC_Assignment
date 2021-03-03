@@ -1,0 +1,33 @@
+name: edr_test
+version: "1.0"
+author: Rex Steele
+about: For argument parsing within the edr_test
+args:
+    - ip_address:
+        help: Destination IP Address for network test
+        required: true
+        index: 1
+    - dst_port:
+        help: Destination port for network test
+        required: true
+        index: 2
+    - src_port:
+        help: Source port for network test
+        required: true
+        index: 3
+    - file_directory:
+        help: Path to directory for file manipulation tests
+        required: true
+        index: 4
+    - process:
+        help: Path and name of process to run
+        required: true
+        index: 5
+    - commands:
+        short: c
+        long: commands
+        value_name: commands
+        takes_value: true
+        multiple: true
+        allow_hyphen_values: true
+        help: Sets optional command line arguments for process. 
