@@ -15,8 +15,8 @@ args:
         help: Source port for network test
         required: true
         index: 3
-    - file_directory:
-        help: Path to directory for file manipulation tests
+    - test_file:
+        help: Path to existing directory ending with name of non-existant file
         required: true
         index: 4
     - process:
@@ -30,4 +30,4 @@ args:
         takes_value: true
         multiple: true
         allow_hyphen_values: true
-        help: Sets optional command line arguments for process. 
+        help: Sets optional command line arguments for process.
