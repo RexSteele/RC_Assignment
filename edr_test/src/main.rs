@@ -12,6 +12,8 @@ use local_ipaddress;
 
 //Run given custom process, including any optional arguments
 fn custom_process(process: &str, proc_args: &Vec<String>, record_file: &str) {
+    let time_stamp = get_timestamp(SystemTime::now());
+
     let mut command = Command::new("sh")
         .arg("-c")
         .arg(process)
@@ -21,7 +23,8 @@ fn custom_process(process: &str, proc_args: &Vec<String>, record_file: &str) {
     command.wait().expect("failed to wait on child");
 
     let user = get_user_by_uid(get_current_uid()).unwrap();
-    let record = format!("{:?}, {}, {}, {:?}, {}, {}, NA, NA\n", get_timestamp(SystemTime::now()), user.name().to_string_lossy(), process, proc_args, command.id(), "custom process");
+
+    let record = format!("{:?}, {}, {}, {:?}, {}, {}, NA, NA, NA, NA\n", time_stamp, user.name().to_string_lossy(), process, proc_args, command.id(), "custom process");
     write_record(record_file, &record).expect("Unable to write to log file");
 }
 
@@ -40,11 +43,16 @@ fn run_process(process: &str) -> u32 {
 //Trigger netcat udp packet using ip_address, dst_port, src_port
 fn network_activity(dst_address: &str, dst_port: &str, src_port: &str, record_file: &str) {
     let src_ip = if check_dst(dst_address) {local_ipaddress::get().unwrap()} else {dst_address.to_string()};
-    let net_command = format!("echo -n \"EDR Test Packet\" | nc -p {} -u -w0 {} {}", src_port, dst_address, dst_port);
+    let data = "\"EDR Test Packet\"";
+    let net_command = format!("echo -n {} | nc -p {} -u -w0 {} {}", data, src_port, dst_address, dst_port);
+
+    let time_stamp = get_timestamp(SystemTime::now());
     let proc_id = run_process(&net_command);
+
     let user = get_user_by_uid(get_current_uid()).unwrap();
-    let record = format!("{:?}, {}, {}, {}, {}, {}, {}:{}, {}:{}\n", get_timestamp(SystemTime::now()), user.name().to_string_lossy(),
-                        "nc", net_command, proc_id, "network", src_ip, src_port, dst_address, dst_port);
+
+    let record = format!("{:?}, {}, {}, {}, {}, {}, {}:{}, {}:{}, {}, {}\n", time_stamp, user.name().to_string_lossy(),
+                        "nc", net_command, proc_id, "network", src_ip, src_port, dst_address, dst_port, "UDP", data);
     write_record(record_file, &record).expect("Unable to write to log file");
 }
 
@@ -72,10 +80,13 @@ fn file_activity(test_file: &str, test_type: &str, record_file: &str) {
         file_command = format!("rm {}", test_file);
         proc_name = "rm".to_string();
     }
+
     let proc_id = run_process(&file_command);
-    let user = get_user_by_uid(get_current_uid()).unwrap();
     let time_stamp = if test_type == "create" || test_type == "modify" {get_timestamp(get_metadata_timestamp(test_file))} else {get_timestamp(SystemTime::now())};
-    let record = format!("{:?}, {}, {}, {}, {}, {}, NA, NA\n", time_stamp, user.name().to_string_lossy(), proc_name, file_command, proc_id, test_type);
+
+    let user = get_user_by_uid(get_current_uid()).unwrap();
+
+    let record = format!("{:?}, {}, {}, {}, {}, {}, NA, NA, NA, NA\n", time_stamp, user.name().to_string_lossy(), proc_name, file_command, proc_id, test_type);
     write_record(record_file, &record).expect("Unable to write to log file");
 }
 
@@ -91,10 +102,10 @@ fn write_record(record_file: &str, data: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-//Create record for telemetry  data
+//Create record for telemetry  data, overwrites if already exists
 fn create_record(record_file: &str) -> std::io::Result<()> {
     File::create(record_file)?;
-    let headers = "Timestamp, Username, Process Name, Process Command, Process ID, Descriptor, Dst Address:Port, Src Address:Port\n";
+    let headers = "Timestamp, Username, Process Name, Process Command, Process ID, Descriptor, Src Address:Port, Dst Address:Port, Protocol, Network Data\n";
     write_record(record_file, headers).expect("Unable to write to log file");
     Ok(())
 }

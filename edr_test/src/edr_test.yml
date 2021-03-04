@@ -1,7 +1,7 @@
 name: edr_test
 version: "1.0"
 author: Rex Steele
-about: For argument parsing within the edr_test
+about: Runs several processes via Bash to imitate user actions and generate test telemetry 
 args:
     - record_file:
         help: Path and name of non-existant file to write csv record to
