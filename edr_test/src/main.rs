@@ -74,8 +74,8 @@ fn file_activity(test_file: &str, test_type: &str, record_file: &str) {
         file_command = format!("touch {}", test_file);
         proc_name = "touch".to_string();
     } else if test_type == "modify" {
-        file_command = format!("echo Testing Modification >> {}", test_file);
-        proc_name = "echo".to_string();
+        file_command = format!("chmod +x {}", test_file);
+        proc_name = "chmod".to_string();
     } else {
         file_command = format!("rm {}", test_file);
         proc_name = "rm".to_string();
