@@ -44,7 +44,7 @@ fn run_process(process: &str) -> u32 {
 fn network_activity(dst_address: &str, dst_port: &str, src_port: &str, record_file: &str) {
     let src_ip = if check_dst(dst_address) {local_ipaddress::get().unwrap()} else {dst_address.to_string()};
     let data = "\"EDR Test Packet\"";
-    let net_command = format!("echo -n {} | nc -p {} -u -w0 {} {}", data, src_port, dst_address, dst_port);
+    let net_command = format!("echo {} | nc -p {} {} {}", data, src_port, dst_address, dst_port);
 
     let time_stamp = get_timestamp(SystemTime::now());
     let proc_id = run_process(&net_command);
@@ -52,7 +52,7 @@ fn network_activity(dst_address: &str, dst_port: &str, src_port: &str, record_fi
     let user = get_user_by_uid(get_current_uid()).unwrap();
 
     let record = format!("{:?}, {}, {}, {}, {}, {}, {}:{}, {}:{}, {}, {}\n", time_stamp, user.name().to_string_lossy(),
-                        "nc", net_command, proc_id, "network", src_ip, src_port, dst_address, dst_port, "UDP", data);
+                        "nc", net_command, proc_id, "network", src_ip, src_port, dst_address, dst_port, "TCP", data);
     write_record(record_file, &record).expect("Unable to write to log file");
 }
 
