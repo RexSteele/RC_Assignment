@@ -2,24 +2,27 @@ use std::process::Command;
 use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::net::IpAddr;
 
+//External crates
 use clap::{App, load_yaml};
 use chrono::NaiveDateTime;
 use users::{get_user_by_uid, get_current_uid};
+use local_ipaddress;
 
 //Run given custom process, including any optional arguments
-fn custom_process(process: &str, proc_args: &Vec<String>) {
-    let mut command = Command::new(process)
+fn custom_process(process: &str, proc_args: &Vec<String>, record_file: &str) {
+    let mut command = Command::new("sh")
+        .arg("-c")
+        .arg(process)
         .args(proc_args)
         .spawn()
         .expect("Failed to spawn process");
     command.wait().expect("failed to wait on child");
 
     let user = get_user_by_uid(get_current_uid()).unwrap();
-
-    println!("{}", user.name().to_string_lossy());
-    println!("{}", get_current_uid());
-    println!("{}\n", command.id());
+    let record = format!("{:?}, {}, {}, {:?}, {}, {}, NA, NA\n", get_timestamp(SystemTime::now()), user.name().to_string_lossy(), process, proc_args, command.id(), "custom process");
+    write_record(record_file, &record).expect("Unable to write to log file");
 }
 
 //Run given process in bash
@@ -31,18 +34,28 @@ fn run_process(process: &str) -> u32 {
         .expect("Failed to spawn process: {}");
     command.wait().expect("Failed to return from child");
 
-    let user = get_user_by_uid(get_current_uid()).unwrap();
-
-    println!("{}", user.name().to_string_lossy());
-    println!("{}", get_current_uid());
-    println!("{}\n", command.id());
     command.id()
 }
 
 //Trigger netcat udp packet using ip_address, dst_port, src_port
-fn network_activity(ip_address: &str, dst_port: &str, src_port: &str) {
-    let net_command = format!("echo -n \"EDR Test Packet\" | nc -p {} -u -w0 {} {}", src_port, ip_address, dst_port);
-    run_process(&net_command);
+fn network_activity(dst_address: &str, dst_port: &str, src_port: &str, record_file: &str) {
+    let src_ip = if check_dst(dst_address) {local_ipaddress::get().unwrap()} else {dst_address.to_string()};
+    let net_command = format!("echo -n \"EDR Test Packet\" | nc -p {} -u -w0 {} {}", src_port, dst_address, dst_port);
+    let proc_id = run_process(&net_command);
+    let user = get_user_by_uid(get_current_uid()).unwrap();
+    let record = format!("{:?}, {}, {}, {}, {}, {}, {}:{}, {}:{}\n", get_timestamp(SystemTime::now()), user.name().to_string_lossy(),
+                        "nc", net_command, proc_id, "network", src_ip, src_port, dst_address, dst_port);
+    write_record(record_file, &record).expect("Unable to write to log file");
+}
+
+//Check if dst address is loopback or not
+fn check_dst(dst_address: &str) -> bool {
+    let dst_ip : IpAddr = dst_address.parse().expect("Unable to parse dst IP addr");
+    let mut status : bool = true;
+    if dst_ip.is_loopback() {
+        status = false;
+    }
+    status
 }
 
 //Trigger file activity based on pathing/file given and test_type passed
@@ -62,8 +75,8 @@ fn file_activity(test_file: &str, test_type: &str, record_file: &str) {
     let proc_id = run_process(&file_command);
     let user = get_user_by_uid(get_current_uid()).unwrap();
     let time_stamp = if test_type == "create" || test_type == "modify" {get_timestamp(get_metadata_timestamp(test_file))} else {get_timestamp(SystemTime::now())};
-    let record = format!("{:?}, {}, {}, {}, {}, {}, NA, NA, NA\n", time_stamp, user.name().to_string_lossy(), proc_name, file_command, proc_id, test_type);
-    write_record(record_file, & record);
+    let record = format!("{:?}, {}, {}, {}, {}, {}, NA, NA\n", time_stamp, user.name().to_string_lossy(), proc_name, file_command, proc_id, test_type);
+    write_record(record_file, &record).expect("Unable to write to log file");
 }
 
 //Write to record for telemetry  data
@@ -82,7 +95,7 @@ fn write_record(record_file: &str, data: &str) -> std::io::Result<()> {
 fn create_record(record_file: &str) -> std::io::Result<()> {
     File::create(record_file)?;
     let headers = "Timestamp, Username, Process Name, Process Command, Process ID, Descriptor, Dst Address:Port, Src Address:Port\n";
-    write_record(record_file, headers);
+    write_record(record_file, headers).expect("Unable to write to log file");
     Ok(())
 }
 
@@ -92,11 +105,6 @@ fn get_metadata_timestamp(test_file: &str) -> SystemTime {
     let f = File::metadata(&file);
     let file_time = f.unwrap().modified().unwrap();
     file_time
-    // let since_epoch = file_time.duration_since(UNIX_EPOCH).unwrap();
-    // let chrono_duration = ::chrono::Duration::from_std(since_epoch).unwrap();
-    // let unix = NaiveDateTime::from_timestamp(0, 0);
-    // let naive = unix + chrono_duration;
-    // naive
 }
 
 // Convert System Time to UTC timestamp
@@ -120,30 +128,16 @@ fn main() {
     let process = &matches.value_of("process").unwrap();
     let proc_args : &Vec<String>= &matches.values_of_lossy("commands").unwrap();
 
-    println!("Using record file: {}", record_file);
-    println!("\nUsing destination ip address: {}", ip_address);
-    println!("Using destination port: {}", dst_port);
-    println!("Using source port: {}", src_port);
-    println!("Using file: {}", test_file);
-    println!("Using input process: {}", process);
-    println!("Using commands string: {:?}", proc_args);
+    create_record(record_file).expect("Unable to create log file");
 
-    println!("Creating record file");
-    create_record(record_file);
+    network_activity(ip_address, dst_port, src_port, record_file);
 
-    println!("Attempting network activity");
-    network_activity(ip_address, dst_port, src_port);
-
-    println!("Attempting to make file");
     file_activity(test_file, "create", record_file);
 
-    println!("Attempting to modify file");
     file_activity(test_file, "modify", record_file);
-    get_metadata_timestamp(test_file);
 
-    println!("Attempting to delete file");
     file_activity(test_file, "remove", record_file);
 
-    custom_process(process, proc_args);
+    custom_process(process, proc_args, record_file);
 
 }
