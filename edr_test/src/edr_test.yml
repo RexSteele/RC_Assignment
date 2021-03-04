@@ -3,26 +3,30 @@ version: "1.0"
 author: Rex Steele
 about: For argument parsing within the edr_test
 args:
+    - record_file:
+        help: Path and name of non-existant file to write csv record to
+        required: true
+        index: 1
     - ip_address:
         help: Destination IP Address for network test
         required: true
-        index: 1
+        index: 2
     - dst_port:
         help: Destination port for network test
         required: true
-        index: 2
+        index: 3
     - src_port:
         help: Source port for network test
         required: true
-        index: 3
+        index: 4
     - test_file:
         help: Path to existing directory ending with name of non-existant file
         required: true
-        index: 4
+        index: 5
     - process:
         help: Path and name of process to run
         required: true
-        index: 5
+        index: 6
     - commands:
         short: c
         long: commands
