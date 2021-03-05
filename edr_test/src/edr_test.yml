@@ -4,7 +4,7 @@ author: Rex Steele
 about: Runs several processes via Bash to imitate user actions and generate test telemetry
 usage: edr_test <record_file> <ip_address> <dst_port> <src_port> <test_file> <process> [OPTIONS]
 args:
-    - record_file:
+    - csv_file:
         help: Path and name of non-existant file to write csv record to
         required: true
         index: 1

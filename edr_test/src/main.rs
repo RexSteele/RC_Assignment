@@ -67,8 +67,9 @@ fn prep_process(process_arg: &str, test_type: &str, record_file: &str) {
         proc_name = process_command.split_whitespace().next().unwrap().to_string();
     }
 
+    let mut time_stamp = get_timestamp(SystemTime::now());
     let proc_id = run_process(&process_command);
-    let time_stamp = if test_type == "create" || test_type == "modify" {get_timestamp(get_metadata_timestamp(process_arg))} else {get_timestamp(SystemTime::now())};
+    if test_type == "create" || test_type == "modify" {time_stamp = get_timestamp(get_metadata_timestamp(process_arg))};
 
     let user = get_user_by_uid(get_current_uid()).unwrap();
 
@@ -117,7 +118,7 @@ fn main() {
     // using yaml load from Clap
     let yaml = load_yaml!("edr_test.yml");
     let matches = App::from_yaml(yaml).get_matches();
-    let record_file = &matches.value_of("record_file").unwrap();
+    let record_file = &matches.value_of("csv_file").unwrap();
     let ip_address = &matches.value_of("ip_address").unwrap();
     let dst_port = &matches.value_of("dst_port").unwrap();
     let src_port = &matches.value_of("src_port").unwrap();
