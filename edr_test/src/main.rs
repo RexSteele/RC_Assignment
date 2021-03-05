@@ -22,7 +22,7 @@ fn run_process(process: &str) -> u32 {
     command.id()
 }
 
-//Trigger netcat udp packet using ip_address, dst_port, src_port
+//Trigger netcat TCP packet using ip_address, dst_port, src_port
 fn network_activity(dst_address: &str, dst_port: &str, src_port: &str, record_file: &str) {
     let src_ip = if check_dst(dst_address) {local_ipaddress::get().unwrap()} else {dst_address.to_string()};
     let data = "\"EDR Test Packet\"";
