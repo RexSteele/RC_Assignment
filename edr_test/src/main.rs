@@ -10,24 +10,6 @@ use chrono::NaiveDateTime;
 use users::{get_user_by_uid, get_current_uid};
 use local_ipaddress;
 
-//Run given custom process, including any optional arguments
-fn custom_process(process: &str, proc_args: &Vec<String>, record_file: &str) {
-    let time_stamp = get_timestamp(SystemTime::now());
-
-    let mut command = Command::new("sh")
-        .arg("-c")
-        .arg(process)
-        .args(proc_args)
-        .spawn()
-        .expect("Failed to spawn process");
-    command.wait().expect("failed to wait on child");
-
-    let user = get_user_by_uid(get_current_uid()).unwrap();
-
-    let record = format!("{:?}, {}, {}, {:?}, {}, {}, NA, NA, NA, NA\n", time_stamp, user.name().to_string_lossy(), process, proc_args, command.id(), "custom process");
-    write_record(record_file, &record).expect("Unable to write to log file");
-}
-
 //Run given process in bash
 fn run_process(process: &str) -> u32 {
     let mut command = Command::new("sh")
@@ -67,26 +49,30 @@ fn check_dst(dst_address: &str) -> bool {
 }
 
 //Trigger file activity based on pathing/file given and test_type passed
-fn file_activity(test_file: &str, test_type: &str, record_file: &str) {
-    let file_command : String;
+fn prep_process(process_arg: &str, test_type: &str, record_file: &str) {
+    let process_command : String;
     let proc_name : String;
+
     if test_type == "create" {
-        file_command = format!("touch {}", test_file);
+        process_command = format!("touch {}", process_arg);
         proc_name = "touch".to_string();
     } else if test_type == "modify" {
-        file_command = format!("chmod +x {}", test_file);
+        process_command = format!("chmod +x {}", process_arg);
         proc_name = "chmod".to_string();
-    } else {
-        file_command = format!("rm {}", test_file);
+    } else if test_type == "remove"{
+        process_command = format!("rm {}", process_arg);
         proc_name = "rm".to_string();
+    } else {
+        process_command = process_arg.to_string();
+        proc_name = process_command.split_whitespace().next().unwrap().to_string();
     }
 
-    let proc_id = run_process(&file_command);
-    let time_stamp = if test_type == "create" || test_type == "modify" {get_timestamp(get_metadata_timestamp(test_file))} else {get_timestamp(SystemTime::now())};
+    let proc_id = run_process(&process_command);
+    let time_stamp = if test_type == "create" || test_type == "modify" {get_timestamp(get_metadata_timestamp(process_arg))} else {get_timestamp(SystemTime::now())};
 
     let user = get_user_by_uid(get_current_uid()).unwrap();
 
-    let record = format!("{:?}, {}, {}, {}, {}, {}, NA, NA, NA, NA\n", time_stamp, user.name().to_string_lossy(), proc_name, file_command, proc_id, test_type);
+    let record = format!("{:?}, {}, {}, {}, {}, {}, NA, NA, NA, NA\n", time_stamp, user.name().to_string_lossy(), proc_name, process_command, proc_id, test_type);
     write_record(record_file, &record).expect("Unable to write to log file");
 }
 
@@ -143,12 +129,14 @@ fn main() {
 
     network_activity(ip_address, dst_port, src_port, record_file);
 
-    file_activity(test_file, "create", record_file);
+    prep_process(test_file, "create", record_file);
 
-    file_activity(test_file, "modify", record_file);
+    prep_process(test_file, "modify", record_file);
 
-    file_activity(test_file, "remove", record_file);
+    prep_process(test_file, "remove", record_file);
 
-    custom_process(process, proc_args, record_file);
+    let proc_args_str = proc_args.join(" ");
+    let full_process = format!("{} {}", process, proc_args_str);
+    prep_process(&full_process, "custom", record_file);
 
 }
