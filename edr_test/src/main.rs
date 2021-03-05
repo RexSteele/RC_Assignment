@@ -123,7 +123,7 @@ fn main() {
     let src_port = &matches.value_of("src_port").unwrap();
     let test_file = &matches.value_of("test_file").unwrap();
     let process = &matches.value_of("process").unwrap();
-    let proc_args : &Vec<String>= &matches.values_of_lossy("commands").unwrap();
+    let proc_args : &Vec<String>= &matches.values_of_lossy("commands").unwrap_or([].to_vec());
 
     create_record(record_file).expect("Unable to create log file");
 
@@ -136,7 +136,7 @@ fn main() {
     prep_process(test_file, "remove", record_file);
 
     let proc_args_str = proc_args.join(" ");
-    let full_process = format!("{} {}", process, proc_args_str);
+    let full_process = if !proc_args_str.is_empty() {format!("{} {}", process, proc_args_str)} else {process.to_string()};
     prep_process(&full_process, "custom", record_file);
 
 }
